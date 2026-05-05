@@ -1,0 +1,6 @@
+{
+  "name": "Harden",
+  "description": "A high-performance, developer-focused HAR file editor with advanced filtering, sanitization, and code conversion tools.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
