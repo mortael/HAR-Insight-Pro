@@ -16,19 +16,40 @@ export const parseHar = (jsonString: string): HAREntry[] => {
   }
 };
 
-export const sanitizeEntry = (entry: HAREntry): HAREntry => {
-  const sensitiveHeaders = ['authorization', 'cookie', 'set-cookie', 'x-api-key', 'proxy-authorization'];
+export const sanitizeEntry = (entry: HAREntry, customHeaders: string[] = [], customPatterns: string[] = []): HAREntry => {
+  const sensitiveHeaders = [
+    'authorization', 'cookie', 'set-cookie', 'x-api-key', 'proxy-authorization',
+    ...customHeaders.map(h => h.toLowerCase())
+  ];
   
+  const patterns = customPatterns.map(p => {
+    try {
+      return new RegExp(p, 'gi');
+    } catch (e) {
+      return null;
+    }
+  }).filter((p): p is RegExp => p !== null);
+
+  const sanitizeValue = (value: string) => {
+    let sanitized = value;
+    patterns.forEach(p => {
+      sanitized = sanitized.replace(p, '[REDACTED]');
+    });
+    return sanitized;
+  };
+
   const sanitizeHeaders = (headers: { name: string; value: string }[]) => 
-    headers.map(h => sensitiveHeaders.includes(h.name.toLowerCase()) 
-      ? { ...h, value: '[REDACTED]' } 
-      : h
-    );
+    headers.map(h => {
+      if (sensitiveHeaders.includes(h.name.toLowerCase())) {
+        return { ...h, value: '[REDACTED]' };
+      }
+      return { ...h, value: sanitizeValue(h.value) };
+    });
 
   const sanitizeCookies = (cookies: any[]) => 
     cookies.map(c => ({ ...c, value: '[REDACTED]' }));
 
-  return {
+  const sanitizedEntry = {
     ...entry,
     request: {
       ...entry.request,
@@ -41,6 +62,13 @@ export const sanitizeEntry = (entry: HAREntry): HAREntry => {
       cookies: sanitizeCookies(entry.response.cookies),
     }
   };
+
+  // Also sanitize postData if present
+  if (sanitizedEntry.request.postData?.text) {
+    sanitizedEntry.request.postData.text = sanitizeValue(sanitizedEntry.request.postData.text);
+  }
+
+  return sanitizedEntry;
 };
 
 export const formatSize = (bytes: number): string => {

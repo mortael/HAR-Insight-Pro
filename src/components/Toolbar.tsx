@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Settings2, Check, ChevronUp, ChevronDown, RotateCcw } from 'lucide-react';
+import { Search, Settings2, Check, ChevronUp, ChevronDown, RotateCcw, Trash2, HelpCircle } from 'lucide-react';
 import { ColumnConfig } from '../types';
 
 interface ToolbarProps {
@@ -20,6 +20,8 @@ export default function Toolbar({
   onSearch, 
   onFilterType, 
   onSortBy, 
+  onSanitize,
+  onClearMedia,
   currentSort, 
   activeFilter,
   columns,
@@ -28,6 +30,7 @@ export default function Toolbar({
   onResetColumns
 }: ToolbarProps) {
   const [showColumnSettings, setShowColumnSettings] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const methodFilters = ['all', 'get', 'post'];
   const typeFilters = ['xhr', 'js', 'css', 'img'];
 
@@ -76,15 +79,45 @@ export default function Toolbar({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-brand-text-dim" />
           <input
             type="text"
-            placeholder="Filter by URL, method or status..."
+            placeholder="Search... e.g. status:200 method:GET size>1000 user:admin"
             onChange={(e) => onSearch(e.target.value)}
             className="w-full bg-black/40 border border-brand-border rounded-md px-9 py-1 text-xs text-brand-text focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent/20 transition-all placeholder:text-[10px] placeholder:uppercase placeholder:tracking-wider placeholder:opacity-40"
           />
+          <button 
+            onMouseEnter={() => setShowHelp(true)}
+            onMouseLeave={() => setShowHelp(false)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-text-dim hover:text-brand-accent transition-colors"
+          >
+            <HelpCircle className="w-3.5 h-3.5" />
+          </button>
+
+          {showHelp && (
+            <div className="absolute top-full left-0 right-0 mt-2 p-3 bg-brand-panel border border-brand-border rounded-lg shadow-2xl z-50 text-[11px] text-brand-text-dim animate-in fade-in slide-in-from-top-1">
+              <div className="font-bold text-brand-text mb-2 uppercase tracking-wider text-[9px]">Advanced Syntax Guide</div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                <div><code className="text-brand-accent">status:200</code> Exact status match</div>
+                <div><code className="text-brand-accent">method:POST</code> Exact method match</div>
+                <div><code className="text-brand-accent">size&gt;500</code> Response size in bytes</div>
+                <div><code className="text-brand-accent">type:json</code> Content-type search</div>
+                <div><code className="text-brand-accent">user:name</code> Headers/Cookies search</div>
+                <div><code className="text-brand-accent">url:api</code> URL path search</div>
+              </div>
+              <div className="mt-2 text-[10px] italic pt-2 border-t border-brand-border">Combine with spaces! e.g. "method:get status:200 .js"</div>
+            </div>
+          )}
         </div>
       </div>
 
       <div className="flex items-center gap-4 shrink-0 relative">
-        <div className="flex items-center gap-1 text-xs text-brand-text-dim">
+        <button
+          onClick={onClearMedia}
+          className="p-2 hover:bg-brand-error/20 text-brand-text-dim hover:text-brand-error rounded transition-all"
+          title="Clear all entries"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+
+        <div className="flex items-center gap-1 text-xs text-brand-text-dim relative">
            <button 
              onClick={() => setShowColumnSettings(!showColumnSettings)}
              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded border transition-all text-[11px] font-bold uppercase tracking-wider ${
@@ -96,7 +129,7 @@ export default function Toolbar({
            </button>
 
            {showColumnSettings && (
-             <div className="absolute top-full right-0 mt-2 w-56 bg-brand-panel border border-brand-border rounded-lg shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-top-1">
+             <div className="absolute top-[120%] right-0 w-56 bg-brand-panel border border-brand-border rounded-lg shadow-2xl p-2 z-[60] animate-in fade-in slide-in-from-top-1">
                <div className="flex items-center justify-between px-2 py-2 mb-1 border-b border-brand-border">
                  <span className="text-[10px] font-bold text-brand-text-dim uppercase tracking-widest">Layout</span>
                  <button 

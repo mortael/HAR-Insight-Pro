@@ -11,6 +11,7 @@ interface RequestDetailsProps {
 
 export default function RequestDetails({ entry, onClose }: RequestDetailsProps) {
   const [activeTab, setActiveTab] = useState<'headers' | 'response' | 'code'>('headers');
+  const [selectedFormat, setSelectedFormat] = useState<CodeExportType>('curl');
   const [copiedType, setCopiedType] = useState<string | null>(null);
 
   const handleCopy = (type: CodeExportType | 'response') => {
@@ -26,12 +27,22 @@ export default function RequestDetails({ entry, onClose }: RequestDetailsProps) 
   };
 
   const getResponseContent = () => {
-    const text = entry.response.content.text;
-    if (!text) return 'No response body available';
+    let text = entry.response.content.text;
+    if (!text) return 'No response body available in this HAR entry. (Check if the source tool recorded bodies)';
     
+    // Handle base64 encoding if present
+    if (entry.response.content.encoding === 'base64') {
+      try {
+        text = atob(text);
+      } catch (e) {
+        return 'Decoding error: Content is base64 but failed to decode via atob()';
+      }
+    }
+
     if (entry.response.content.mimeType.includes('json')) {
       try {
-        return JSON.stringify(JSON.parse(text), null, 2);
+        const parsed = JSON.parse(text);
+        return JSON.stringify(parsed, null, 2);
       } catch (e) {
         return text;
       }
@@ -148,29 +159,60 @@ export default function RequestDetails({ entry, onClose }: RequestDetailsProps) 
         )}
 
         {activeTab === 'code' && (
-          <div className="space-y-3">
-            <span className="text-[11px] uppercase text-brand-text-dim font-bold block border-b border-brand-border pb-1 mb-4 tracking-wider">
-              Export snippets
-            </span>
-            <ActionButton 
-              label="cURL Command" 
-              onClick={() => handleCopy('curl')} 
-              isCopied={copiedType === 'curl'} 
-            />
-            <ActionButton 
-              label="Python (Requests)" 
-              onClick={() => handleCopy('python')} 
-              isCopied={copiedType === 'python'} 
-            />
-            <ActionButton 
-              label="PowerShell (RestMethod)" 
-              onClick={() => handleCopy('powershell')} 
-              isCopied={copiedType === 'powershell'} 
-            />
+          <div className="space-y-4 h-full flex flex-col">
+            <div className="shrink-0">
+              <span className="text-[11px] uppercase text-brand-text-dim font-bold block border-b border-brand-border pb-1 mb-4 tracking-wider">
+                Export Options
+              </span>
+              <div className="flex gap-2 mb-4">
+                {(['curl', 'python', 'powershell'] as CodeExportType[]).map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => setSelectedFormat(type)}
+                    className={`flex-1 py-1.5 px-2 text-[10px] font-bold uppercase tracking-tight rounded border transition-all ${
+                      selectedFormat === type 
+                        ? 'bg-brand-accent/20 border-brand-accent text-brand-accent' 
+                        : 'bg-black/40 border-brand-border text-brand-text-dim hover:border-brand-text'
+                    }`}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex-1 min-h-0 flex flex-col">
+              <CodeSnippet 
+                label={`${selectedFormat.toUpperCase()} Code`} 
+                code={convertToCode(entry, selectedFormat)}
+                onCopy={() => handleCopy(selectedFormat)}
+                isCopied={copiedType === selectedFormat}
+                tall
+              />
+            </div>
           </div>
         )}
       </div>
     </motion.aside>
+  );
+}
+
+function CodeSnippet({ label, code, onCopy, isCopied, tall }: { label: string; code: string; onCopy: () => void; isCopied: boolean; tall?: boolean }) {
+  return (
+    <div className="space-y-1.5 h-full flex flex-col">
+      <div className="flex items-center justify-between px-1 shrink-0">
+        <span className="text-[10px] font-bold text-brand-text-dim uppercase tracking-wider">{label}</span>
+        <button 
+          onClick={onCopy}
+          className="text-brand-accent hover:text-white transition-colors flex items-center gap-1 text-[10px] font-bold"
+        >
+          {isCopied ? <><Check className="w-3 h-3" /> Copied</> : <><Copy className="w-3 h-3" /> Copy</>}
+        </button>
+      </div>
+      <div className={`bg-black/60 rounded border border-brand-border p-3 font-mono text-[11px] text-brand-text/90 overflow-auto relative scrollbar-thin scrollbar-thumb-brand-border flex-1 ${tall ? 'min-h-[200px]' : 'h-[100px]'}`}>
+        <pre className="whitespace-pre break-all">{code}</pre>
+      </div>
+    </div>
   );
 }
 
@@ -185,18 +227,3 @@ function KVRow({ label, value, accent, ...props }: { label: string; value: strin
   );
 }
 
-function ActionButton({ label, onClick, isCopied }: { label: string; onClick: () => void; isCopied: boolean }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`w-full text-left px-3 py-2 border rounded-md text-[13px] font-medium transition-all flex items-center justify-between ${
-        isCopied 
-          ? 'bg-brand-success/10 border-brand-success text-brand-success' 
-          : 'bg-[#21262D] border-brand-border text-brand-text hover:border-brand-text-dim'
-      }`}
-    >
-      {label}
-      {isCopied && <Check className="w-3.5 h-3.5" />}
-    </button>
-  );
-}

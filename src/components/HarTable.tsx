@@ -1,17 +1,28 @@
 import { HAREntry, ColumnConfig } from '../types';
 import { formatSize } from '../lib/harUtils';
 import { motion, AnimatePresence } from 'motion/react';
-import { Activity } from 'lucide-react';
+import { Activity, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import { useMemo } from 'react';
 
 interface HarTableProps {
   entries: HAREntry[];
   onSelectEntry: (entry: HAREntry) => void;
+  onDeleteEntry: (id: string) => void;
   selectedId?: string;
   columns: ColumnConfig[];
+  onSortBy: (field: string) => void;
+  currentSort: { field: string; direction: 'asc' | 'desc' };
 }
 
-export default function HarTable({ entries, onSelectEntry, selectedId, columns }: HarTableProps) {
+export default function HarTable({ 
+  entries, 
+  onSelectEntry, 
+  onDeleteEntry, 
+  selectedId, 
+  columns,
+  onSortBy,
+  currentSort
+}: HarTableProps) {
   const visibleColumns = useMemo(() => columns.filter(c => c.visible), [columns]);
 
   const getStatusColor = (status: number) => {
@@ -27,10 +38,25 @@ export default function HarTable({ entries, onSelectEntry, selectedId, columns }
         <thead className="bg-brand-panel border-b border-brand-border sticky top-0 z-10">
           <tr className="text-[11px] font-semibold text-brand-text-dim uppercase tracking-[0.5px]">
             {visibleColumns.map(col => (
-              <th key={col.id} className="p-3" style={col.width ? { width: col.width } : {}}>
-                {col.label}
+              <th 
+                key={col.id} 
+                className={`p-3 select-none transition-colors cursor-pointer hover:bg-white/5 group/th ${currentSort.field === col.id ? 'text-brand-accent' : ''}`}
+                style={col.width ? { width: col.width } : {}}
+                onClick={() => onSortBy(col.id)}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span>{col.label}</span>
+                  <div className="flex flex-col opacity-0 group-hover/th:opacity-50 transition-opacity">
+                    {currentSort.field === col.id ? (
+                      currentSort.direction === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                    ) : (
+                      <ChevronUp className="w-3 h-3" />
+                    )}
+                  </div>
+                </div>
               </th>
             ))}
+            <th className="p-3 w-[40px]"></th>
           </tr>
         </thead>
         <tbody className="divide-y divide-brand-border">
@@ -70,6 +96,11 @@ export default function HarTable({ entries, onSelectEntry, selectedId, columns }
                 >
                   {visibleColumns.map(col => (
                     <td key={col.id} className="p-3">
+                      {col.id === 'index' && (
+                        <span className="text-[10px] font-mono text-brand-text-dim">
+                          {(entry as any)._originalIndex}
+                        </span>
+                      )}
                       {col.id === 'status' && (
                         <span className={`font-medium ${getStatusColor(entry.response.status)}`}>
                           {entry.response.status}
@@ -113,6 +144,18 @@ export default function HarTable({ entries, onSelectEntry, selectedId, columns }
                       )}
                     </td>
                   ))}
+                  <td className="p-3 text-right">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteEntry(entry._id);
+                      }}
+                      className="p-1.5 opacity-0 group-hover:opacity-100 hover:bg-brand-error/20 hover:text-brand-error rounded transition-all text-brand-text-dim"
+                      title="Remove entry"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
                 </motion.tr>
               );
             })}

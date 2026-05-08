@@ -5,6 +5,7 @@ import HarUploader from './components/HarUploader';
 import HarTable from './components/HarTable';
 import Toolbar from './components/Toolbar';
 import RequestDetails from './components/RequestDetails';
+import SanitizeModal from './components/SanitizeModal';
 import { HAREntry, ColumnConfig } from './types';
 import { parseHar, sanitizeEntry } from './lib/harUtils';
 
@@ -17,8 +18,13 @@ export default function App() {
     field: 'startTime',
     direction: 'asc',
   });
-
+  const [sanitizeConfig, setSanitizeConfig] = useState<{ headers: string[], patterns: string[] }>({
+    headers: [],
+    patterns: []
+  });
+  const [showSanitizeModal, setShowSanitizeModal] = useState(false);
   const defaultColumns: ColumnConfig[] = [
+    { id: 'index', label: '#', visible: true, width: '40px' },
     { id: 'status', label: 'Status', visible: true, width: '60px' },
     { id: 'method', label: 'Method', visible: true, width: '80px' },
     { id: 'domain', label: 'Domain', visible: true, width: '150px' },
@@ -70,6 +76,16 @@ export default function App() {
   const handleResetColumns = useCallback(() => {
     setColumns(defaultColumns);
     localStorage.removeItem('har-columns');
+  }, [defaultColumns]);
+
+  const handleDeleteEntry = useCallback((id: string) => {
+    setEntries(prev => prev.filter(e => e._id !== id));
+    if (selectedEntry?._id === id) setSelectedEntry(null);
+  }, [selectedEntry]);
+
+  const handleClear = useCallback(() => {
+    setEntries([]);
+    setSelectedEntry(null);
   }, []);
 
   const handleUpload = useCallback((content: string) => {
@@ -82,8 +98,8 @@ export default function App() {
   }, []);
 
   const handleSanitize = useCallback(() => {
-    setEntries((prev) => prev.map(sanitizeEntry));
-  }, []);
+    setEntries((prev) => prev.map(entry => sanitizeEntry(entry, sanitizeConfig.headers, sanitizeConfig.patterns)));
+  }, [sanitizeConfig]);
 
   const handleClearMedia = useCallback(() => {
     setEntries((prev) => 
@@ -114,27 +130,81 @@ export default function App() {
   const handleSortBy = useCallback((field: string) => {
     setSort((prev) => ({
       field,
-      direction: prev.field === field && prev.direction === 'desc' ? 'asc' : 'desc',
+      direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc',
     }));
   }, []);
 
   const filteredAndSortedEntries = useMemo(() => {
-    let result = [...entries];
+    let result = entries.map((e, index) => ({ ...e, _originalIndex: index + 1 }));
 
-    // Search
+    // Advanced Filter & Search
     if (search) {
-      const lowerSearch = search.toLowerCase();
-      result = result.filter(
-        (e) => 
-          e.request.url.toLowerCase().includes(lowerSearch) ||
-          e.request.method.toLowerCase().includes(lowerSearch) ||
-          e.response.status.toString().includes(lowerSearch)
-      );
+      const parts = search.split(/\s+/);
+      const filters: { key: string; op: string; val: string }[] = [];
+      const keywords: string[] = [];
+
+      parts.forEach(part => {
+        const match = part.match(/^(\w+)(:|>=|<=|>|<|=)(.*)$/);
+        if (match) {
+          filters.push({ key: match[1].toLowerCase(), op: match[2], val: match[3].toLowerCase() });
+        } else {
+          keywords.push(part.toLowerCase());
+        }
+      });
+
+      result = result.filter(e => {
+        // Keyword search (URL, method, status, mime)
+        const contentMatch = keywords.every(k => 
+          e.request.url.toLowerCase().includes(k) ||
+          e.request.method.toLowerCase().includes(k) ||
+          e.response.status.toString().includes(k) ||
+          e.response.content.mimeType.toLowerCase().includes(k)
+        );
+        if (!contentMatch) return false;
+
+        // Structured Filters
+        return filters.every(f => {
+          switch (f.key) {
+            case 'url': return e.request.url.toLowerCase().includes(f.val);
+            case 'method': return e.request.method.toLowerCase() === f.val;
+            case 'status': return e.response.status.toString() === f.val;
+            case 'type': return e.response.content.mimeType.toLowerCase().includes(f.val);
+            case 'size': {
+              const size = e.response.content.size;
+              const val = parseInt(f.val);
+              if (isNaN(val)) return true;
+              if (f.op === '>') return size > val;
+              if (f.op === '<') return size < val;
+              if (f.op === '>=') return size >= val;
+              if (f.op === '<=') return size <= val;
+              return size === val;
+            }
+            case 'user': {
+              // Search in headers for user-related info (cookies, auth, user-agent)
+              const headers = [
+                ...e.request.headers,
+                ...e.response.headers,
+                ...(e.request.cookies || []),
+                ...(e.response.cookies || [])
+              ];
+              return headers.some(h => 
+                (h as any).name.toLowerCase().includes('user') || 
+                (h as any).name.toLowerCase().includes('auth') ||
+                (h as any).value?.toLowerCase().includes(f.val)
+              );
+            }
+            default: return true;
+          }
+        });
+      });
     }
 
-    // MIME Type Filter
+    // MIME Type & Method Filter (Quick filters from toolbar)
     if (filterType !== 'all') {
       result = result.filter((e) => {
+        const method = e.request.method.toLowerCase();
+        if (filterType === method) return true;
+
         const mime = e.response.content.mimeType.toLowerCase();
         switch (filterType) {
           case 'xhr': return mime.includes('json') || mime.includes('xml');
@@ -144,7 +214,7 @@ export default function App() {
           case 'media': return mime.includes('video') || mime.includes('audio');
           case 'font': return mime.includes('font');
           case 'doc': return mime.includes('html');
-          default: return true;
+          default: return false;
         }
       });
     }
@@ -152,13 +222,32 @@ export default function App() {
     // Sort
     result.sort((a, b) => {
       let valA: any, valB: any;
+      const getEffectiveSize = (e: HAREntry) => {
+        const bSize = e.response.bodySize;
+        const cSize = e.response.content?.size;
+        if (typeof bSize === 'number' && bSize > 0) return bSize;
+        if (typeof cSize === 'number' && cSize > 0) return cSize;
+        return 0;
+      };
+
       switch (sort.field) {
+        case 'index': valA = (a as any)._originalIndex; valB = (b as any)._originalIndex; break;
         case 'startTime': valA = new Date(a.startedDateTime).getTime(); valB = new Date(b.startedDateTime).getTime(); break;
         case 'time': valA = a.time; valB = b.time; break;
-        case 'size': valA = a.response.content.size; valB = b.response.content.size; break;
+        case 'size': valA = getEffectiveSize(a); valB = getEffectiveSize(b); break;
         case 'status': valA = a.response.status; valB = b.response.status; break;
         case 'method': valA = a.request.method; valB = b.request.method; break;
+        case 'domain': 
+          try { valA = new URL(a.request.url).hostname; } catch(e) { valA = ''; }
+          try { valB = new URL(b.request.url).hostname; } catch(e) { valB = ''; }
+          break;
+        case 'url': valA = a.request.url; valB = b.request.url; break;
+        case 'type': valA = a.response.content.mimeType; valB = b.response.content.mimeType; break;
         default: return 0;
+      }
+      
+      if (typeof valA === 'string' && typeof valB === 'string') {
+        return sort.direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
       }
       return sort.direction === 'asc' ? valA - valB : valB - valA;
     });
@@ -186,9 +275,10 @@ export default function App() {
               Purge Large Assets
             </button>
             <button 
-              onClick={handleSanitize}
-              className="px-3.5 py-1.5 rounded-md text-[13px] font-medium border border-brand-border bg-[#21262D] hover:border-brand-text-dim transition-all"
+              onClick={() => setShowSanitizeModal(true)}
+              className="px-3.5 py-1.5 rounded-md text-[13px] font-medium border border-brand-border bg-[#21262D] hover:border-brand-text-dim transition-all flex items-center gap-2"
             >
+              <ShieldCheck className="w-4 h-4 text-brand-accent scale-110" />
               Sanitize Entries
             </button>
             <button 
@@ -223,7 +313,7 @@ export default function App() {
               onFilterType={setFilterType}
               onSortBy={handleSortBy}
               onSanitize={handleSanitize}
-              onClearMedia={handleClearMedia}
+              onClearMedia={handleClear}
               currentSort={sort}
               activeFilter={filterType}
               columns={columns}
@@ -237,8 +327,11 @@ export default function App() {
                 <HarTable 
                   entries={filteredAndSortedEntries} 
                   onSelectEntry={setSelectedEntry}
+                  onDeleteEntry={handleDeleteEntry}
                   selectedId={selectedEntry?._id}
                   columns={columns}
+                  onSortBy={handleSortBy}
+                  currentSort={sort}
                 />
               </div>
               
@@ -273,6 +366,15 @@ export default function App() {
           </>
         )}
       </footer>
+
+      {showSanitizeModal && (
+        <SanitizeModal 
+          config={sanitizeConfig}
+          onSave={setSanitizeConfig}
+          onSanitize={handleSanitize}
+          onClose={() => setShowSanitizeModal(false)}
+        />
+      )}
     </div>
   );
 }
