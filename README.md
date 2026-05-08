@@ -2,19 +2,27 @@
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-# Run and deploy your AI Studio app
+# HAR Insight Pro
 
-This contains everything you need to run your app locally.
-
-View your app in AI Studio: https://ai.studio/apps/cba46499-c59c-4610-8a65-9fa504ffd21e
+A fast, developer-focused HAR file viewer/editor with advanced filtering and sanitization tools.
 
 ## Run Locally
 
-**Prerequisites:**  Node.js
+**Prerequisites:** Node.js
 
 
 1. Install dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
+2. (Optional) Set `GEMINI_API_KEY` in `.env.local` if you enable AI-powered features
+3. Run the web app:
    `npm run dev`
+
+## Windows Desktop App (Electron)
+
+1. Start the desktop app in development (runs Vite + Electron):
+   `npm run desktop:dev`
+2. Build a Windows installer (`release/`):
+   `npm run desktop:build`
+   (Run this on Windows for the smoothest experience.)
+
+Logo: `src/assets/logo.svg` (used in the app header and as the Electron window icon in dev).

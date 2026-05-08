@@ -8,6 +8,7 @@ import RequestDetails from './components/RequestDetails';
 import SanitizeModal from './components/SanitizeModal';
 import { HAREntry, ColumnConfig } from './types';
 import { parseHar, sanitizeEntry } from './lib/harUtils';
+import logoUrl from './assets/logo.svg';
 
 export default function App() {
   const [entries, setEntries] = useState<HAREntry[]>([]);
@@ -114,7 +115,7 @@ export default function App() {
     const harContent = {
       log: {
         version: '1.2',
-        creator: { name: 'Harden Editor', version: '1.0.0' },
+        creator: { name: 'HAR Insight Pro', version: '1.0.0' },
         entries,
       }
     };
@@ -260,9 +261,7 @@ export default function App() {
       {/* Header */}
       <header className="h-[56px] bg-brand-panel border-b border-brand-border flex items-center justify-between px-5 shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="w-6 h-6 bg-brand-accent rounded flex items-center justify-center font-bold text-white text-sm">
-            H
-          </div>
+          <img src={logoUrl} alt="HAR Insight Pro" className="w-7 h-7" />
           <span className="font-bold text-lg tracking-tight">HAR Insight Pro</span>
         </div>
 

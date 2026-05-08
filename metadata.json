@@ -1,6 +1,6 @@
 {
-  "name": "Harden",
-  "description": "A high-performance, developer-focused HAR file editor with advanced filtering, sanitization, and code conversion tools.",
+  "name": "HAR Insight Pro",
+  "description": "A high-performance, developer-focused HAR file viewer/editor with advanced filtering and sanitization tools.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }
