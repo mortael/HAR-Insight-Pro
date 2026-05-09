@@ -3,15 +3,14 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
-    "desktop:dev": "concurrently -k -n VITE,ELECTRON -c cyan,magenta \"npm:dev\" \"wait-on http://127.0.0.1:3000 && electron .\"",
-    "desktop:build": "npm run build && electron-builder --win --x64"
+    "desktop:dev": "tauri dev",
+    "desktop:build": "tauri build"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.14",
@@ -32,26 +31,6 @@
     "typescript": "~5.8.2",
     "vite": "^6.2.3",
     "@types/express": "^4.17.21",
-    "concurrently": "^9.2.1",
-    "electron": "^39.8.1",
-    "electron-builder": "^25.1.8",
-    "wait-on": "^8.0.5"
-  },
-  "build": {
-    "appId": "com.harinsightpro.app",
-    "productName": "HAR Insight Pro",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**",
-      "electron/**",
-      "package.json"
-    ],
-    "win": {
-      "target": [
-        "nsis"
-      ]
-    }
+    "@tauri-apps/cli": "^2.11.1"
   }
 }

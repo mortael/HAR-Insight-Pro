@@ -17,14 +17,14 @@ A fast, developer-focused HAR file viewer/editor with advanced filtering and san
 3. Run the web app:
    `npm run dev`
 
-## Windows Desktop App (Electron)
+## Windows Desktop App (Tauri)
 
-1. Start the desktop app in development (runs Vite + Electron):
+Tauri uses the system WebView (WebView2 on Windows), which is typically much smaller than Electron installers.
+
+1. Start the desktop app in development:
    `npm run desktop:dev`
-2. Build a Windows installer (`release/`):
+2. Build the desktop app bundle (output under `src-tauri/target/`):
    `npm run desktop:build`
    (Run this on Windows for the smoothest experience.)
 
-Logo: `src/assets/logo.svg` (used in the app header and as the Electron window icon in dev).
-
-Note: Electron bundles Chromium, which makes installers large. This PR is being updated to use a smaller WebView-based desktop wrapper for Windows.
+Logo: `src/assets/logo.svg` (used in the app header).
