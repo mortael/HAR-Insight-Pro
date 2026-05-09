@@ -26,3 +26,5 @@ A fast, developer-focused HAR file viewer/editor with advanced filtering and san
    (Run this on Windows for the smoothest experience.)
 
 Logo: `src/assets/logo.svg` (used in the app header and as the Electron window icon in dev).
+
+Note: Electron bundles Chromium, which makes installers large. This PR is being updated to use a smaller WebView-based desktop wrapper for Windows.
