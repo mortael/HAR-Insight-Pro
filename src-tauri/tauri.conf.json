@@ -1,0 +1,54 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "HAR Insight Pro",
+  "version": "1.0.0",
+  "identifier": "com.harinsight.pro",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:3000",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "HAR Insight Pro",
+        "width": 1400,
+        "height": 900,
+        "minWidth": 1000,
+        "minHeight": 600,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true,
+        "decorations": true,
+        "theme": "Dark"
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "shortDescription": "HAR file analyzer and editor",
+    "longDescription": "A high-performance, developer-focused HAR file editor with advanced filtering, sanitization, and code conversion tools.",
+    "homepage": "https://github.com/mortael/HAR-Insight-Pro",
+    "publisher": "HAR Insight Pro",
+    "category": "DeveloperTool",
+    "fileAssociations": [
+      {
+        "ext": "har",
+        "description": "HTTP Archive File",
+        "mimeType": "application/json"
+      }
+    ]
+  }
+}

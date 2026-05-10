@@ -6,3 +6,8 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Tauri / Rust
+src-tauri/target/
+src-tauri/Cargo.lock
+

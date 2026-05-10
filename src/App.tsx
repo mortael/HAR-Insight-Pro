@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Activity, ShieldCheck, Download, Trash2, Box } from 'lucide-react';
 import HarUploader from './components/HarUploader';
@@ -8,6 +8,9 @@ import RequestDetails from './components/RequestDetails';
 import SanitizeModal from './components/SanitizeModal';
 import { HAREntry, ColumnConfig } from './types';
 import { parseHar, sanitizeEntry } from './lib/harUtils';
+
+// Detect if running in Tauri
+const isTauri = typeof window !== 'undefined' && '__TAURI__' in window;
 
 export default function App() {
   const [entries, setEntries] = useState<HAREntry[]>([]);
@@ -110,15 +113,41 @@ export default function App() {
     );
   }, []);
 
-  const handleDownload = useCallback(() => {
+  const handleDownload = useCallback(async () => {
     const harContent = {
       log: {
         version: '1.2',
-        creator: { name: 'Harden Editor', version: '1.0.0' },
+        creator: { name: 'HAR Insight Pro', version: '1.0.0' },
         entries,
       }
     };
-    const blob = new Blob([JSON.stringify(harContent, null, 2)], { type: 'application/json' });
+    const jsonContent = JSON.stringify(harContent, null, 2);
+
+    // Use Tauri native save dialog if available
+    if (isTauri) {
+      try {
+        const { save } = await import('@tauri-apps/plugin-dialog');
+        const { writeTextFile } = await import('@tauri-apps/plugin-fs');
+
+        const filePath = await save({
+          defaultPath: `sanitized-${Date.now()}.har`,
+          filters: [{
+            name: 'HAR Files',
+            extensions: ['har']
+          }]
+        });
+
+        if (filePath) {
+          await writeTextFile(filePath, jsonContent);
+          return;
+        }
+      } catch (error) {
+        console.error('Error saving file with Tauri:', error);
+      }
+    }
+
+    // Fallback to browser download
+    const blob = new Blob([jsonContent], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
