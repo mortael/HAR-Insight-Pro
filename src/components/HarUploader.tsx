@@ -1,7 +1,8 @@
 import { useCallback } from 'react';
 import type { DragEvent, ChangeEvent } from 'react';
-import { Upload, FileCode } from 'lucide-react';
+import { Upload, FileCode, FolderOpen } from 'lucide-react';
 import { motion } from 'motion/react';
+import { isTauri, openHarFileDialog } from '../lib/tauriUtils';
 
 interface HarUploaderProps {
   onUpload: (content: string) => void;
@@ -30,6 +31,13 @@ export default function HarUploader({ onUpload }: HarUploaderProps) {
     if (file) handleFile(file);
   }, [handleFile]);
 
+  const handleNativeOpen = useCallback(async () => {
+    const content = await openHarFileDialog();
+    if (content) onUpload(content);
+  }, [onUpload]);
+
+  const isDesktop = isTauri();
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -48,10 +56,20 @@ export default function HarUploader({ onUpload }: HarUploaderProps) {
       </p>
       
       <div className="flex flex-col items-center gap-4">
-        <label className="cursor-pointer bg-brand-accent text-white font-semibold py-2.5 px-10 rounded-md transition-all shadow-lg shadow-brand-accent/10 hover:brightness-110 active:scale-95 text-sm">
-          Select Source File
-          <input type="file" className="hidden" accept=".har,application/json" onChange={onChange} />
-        </label>
+        {isDesktop ? (
+          <button
+            onClick={handleNativeOpen}
+            className="cursor-pointer bg-brand-accent text-white font-semibold py-2.5 px-10 rounded-md transition-all shadow-lg shadow-brand-accent/10 hover:brightness-110 active:scale-95 text-sm flex items-center gap-2"
+          >
+            <FolderOpen className="w-4 h-4" />
+            Open HAR File…
+          </button>
+        ) : (
+          <label className="cursor-pointer bg-brand-accent text-white font-semibold py-2.5 px-10 rounded-md transition-all shadow-lg shadow-brand-accent/10 hover:brightness-110 active:scale-95 text-sm">
+            Select Source File
+            <input type="file" className="hidden" accept=".har,application/json" onChange={onChange} />
+          </label>
+        )}
         
         <div className="flex items-center gap-2 text-brand-text-dim text-[10px] font-mono uppercase tracking-[0.1em]">
           <FileCode className="w-3.5 h-3.5" />
