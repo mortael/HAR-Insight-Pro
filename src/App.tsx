@@ -8,8 +8,10 @@ import RequestDetails from './components/RequestDetails';
 import SanitizeModal from './components/SanitizeModal';
 import { HAREntry, ColumnConfig } from './types';
 import { parseHar, sanitizeEntry } from './lib/harUtils';
+import { isTauriDesktop, openHarFromNativeDialog, saveHarToNativeDialog } from './lib/desktop';
 
 export default function App() {
+  const isDesktop = isTauriDesktop();
   const [entries, setEntries] = useState<HAREntry[]>([]);
   const [selectedEntry, setSelectedEntry] = useState<HAREntry | null>(null);
   const [search, setSearch] = useState('');
@@ -97,6 +99,15 @@ export default function App() {
     }
   }, []);
 
+  const handleNativeOpen = useCallback(async () => {
+    try {
+      const content = await openHarFromNativeDialog();
+      if (content) handleUpload(content);
+    } catch {
+      alert('Failed to open HAR file.');
+    }
+  }, [handleUpload]);
+
   const handleSanitize = useCallback(() => {
     setEntries((prev) => prev.map(entry => sanitizeEntry(entry, sanitizeConfig.headers, sanitizeConfig.patterns)));
   }, [sanitizeConfig]);
@@ -114,7 +125,7 @@ export default function App() {
     const harContent = {
       log: {
         version: '1.2',
-        creator: { name: 'Harden Editor', version: '1.0.0' },
+        creator: { name: 'HAR Insight Pro', version: '0.1.0' },
         entries,
       }
     };
@@ -126,6 +137,29 @@ export default function App() {
     a.click();
     URL.revokeObjectURL(url);
   }, [entries]);
+
+  const handleExport = useCallback(async () => {
+    const harContent = {
+      log: {
+        version: '1.2',
+        creator: { name: 'HAR Insight Pro', version: '0.1.0' },
+        entries,
+      }
+    };
+    const contents = JSON.stringify(harContent, null, 2);
+
+    if (!isDesktop) {
+      handleDownload();
+      return;
+    }
+
+    try {
+      const ok = await saveHarToNativeDialog(contents);
+      if (!ok) return;
+    } catch {
+      alert('Failed to export HAR file.');
+    }
+  }, [entries, handleDownload, isDesktop]);
 
   const handleSortBy = useCallback((field: string) => {
     setSort((prev) => ({
@@ -282,7 +316,7 @@ export default function App() {
               Sanitize Entries
             </button>
             <button 
-              onClick={handleDownload}
+              onClick={handleExport}
               className="px-3.5 py-1.5 rounded-md text-[13px] font-medium bg-brand-accent text-white border border-brand-accent hover:brightness-110 transition-all font-semibold"
             >
               Export HAR
@@ -304,7 +338,7 @@ export default function App() {
       <main className="flex-1 flex flex-col overflow-hidden">
         {entries.length === 0 ? (
           <div className="flex-1 flex items-center justify-center bg-brand-bg">
-            <HarUploader onUpload={handleUpload} />
+            <HarUploader onUpload={handleUpload} onNativeOpen={isDesktop ? handleNativeOpen : undefined} />
           </div>
         ) : (
           <div className="flex-1 flex flex-col overflow-hidden">
