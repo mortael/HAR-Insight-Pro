@@ -2,19 +2,34 @@
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-# Run and deploy your AI Studio app
+# HAR Insight Pro
 
-This contains everything you need to run your app locally.
+A high-performance, developer-focused HAR file inspector/editor with advanced filtering, sanitization, and code conversion tools.
 
-View your app in AI Studio: https://ai.studio/apps/cba46499-c59c-4610-8a65-9fa504ffd21e
-
-## Run Locally
+## Run (Web)
 
 **Prerequisites:**  Node.js
 
+1. Install dependencies:
+   `npm install`
+2. Run the app:
+   `npm run dev`
+
+## Run (Desktop)
+
+This repo includes a Tauri desktop wrapper (`src-tauri/`) around the existing React UI.
+
+**Prerequisites:** Node.js, Rust toolchain
 
 1. Install dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+2. Run the desktop app:
+   `npm run desktop:dev`
+
+### Build installers/bundles
+
+`npm run desktop:build`
+
+### Linux notes
+
+Building Tauri on Linux requires system WebView dependencies (GTK/WebKit). See the Tauri prerequisites for your distro if `cargo` errors mention `glib-2.0` / `webkit2gtk`.

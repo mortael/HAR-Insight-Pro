@@ -5,9 +5,10 @@ import { motion } from 'motion/react';
 
 interface HarUploaderProps {
   onUpload: (content: string) => void;
+  onNativeOpen?: () => void;
 }
 
-export default function HarUploader({ onUpload }: HarUploaderProps) {
+export default function HarUploader({ onUpload, onNativeOpen }: HarUploaderProps) {
   const handleFile = useCallback((file: File) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -48,10 +49,22 @@ export default function HarUploader({ onUpload }: HarUploaderProps) {
       </p>
       
       <div className="flex flex-col items-center gap-4">
-        <label className="cursor-pointer bg-brand-accent text-white font-semibold py-2.5 px-10 rounded-md transition-all shadow-lg shadow-brand-accent/10 hover:brightness-110 active:scale-95 text-sm">
-          Select Source File
-          <input type="file" className="hidden" accept=".har,application/json" onChange={onChange} />
-        </label>
+        <div className="flex flex-col items-center gap-2">
+          <label className="cursor-pointer bg-brand-accent text-white font-semibold py-2.5 px-10 rounded-md transition-all shadow-lg shadow-brand-accent/10 hover:brightness-110 active:scale-95 text-sm">
+            Select Source File
+            <input type="file" className="hidden" accept=".har,application/json" onChange={onChange} />
+          </label>
+
+          {onNativeOpen && (
+            <button
+              type="button"
+              onClick={onNativeOpen}
+              className="cursor-pointer bg-brand-border/30 text-brand-text font-semibold py-2 px-10 rounded-md transition-all hover:bg-brand-border/40 active:scale-95 text-sm border border-brand-border"
+            >
+              Open via Desktop Dialog
+            </button>
+          )}
+        </div>
         
         <div className="flex items-center gap-2 text-brand-text-dim text-[10px] font-mono uppercase tracking-[0.1em]">
           <FileCode className="w-3.5 h-3.5" />
